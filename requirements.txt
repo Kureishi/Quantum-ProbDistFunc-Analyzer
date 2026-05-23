@@ -1,0 +1,28 @@
+# Core fine-tuning stack
+unsloth[colab-new]>=2024.12.0   # VLM QLoRA fine-tuning (GPU)
+trl>=0.12.0                     # SFTTrainer
+peft>=0.13.0                    # LoRA / QLoRA
+transformers>=4.47.0
+accelerate>=1.0.0
+bitsandbytes>=0.44.0            # 4-bit quantisation (Linux/Windows CUDA)
+datasets>=3.0.0
+
+# Image handling
+Pillow>=10.0.0
+torchvision>=0.19.0
+
+# LM Studio inference client (OpenAI-compatible)
+openai>=1.55.0
+
+# Dataset & evaluation utilities
+numpy>=1.26.0
+pandas>=2.1.0
+scikit-learn>=1.5.0
+tqdm>=4.66.0
+pyyaml>=6.0.1
+rich>=13.0.0                    # pretty terminal output
+
+# GGUF export (llama.cpp Python bindings — only needed for export step)
+# Install separately if needed:
+#   pip install llama-cpp-python
+# Or use the llama.cpp CLI directly (recommended, see export_gguf.py).
