@@ -1,28 +1,88 @@
-# Core fine-tuning stack
-unsloth[colab-new]>=2024.12.0   # VLM QLoRA fine-tuning (GPU)
-trl>=0.12.0                     # SFTTrainer
-peft>=0.13.0                    # LoRA / QLoRA
-transformers>=4.47.0
-accelerate>=1.0.0
-bitsandbytes>=0.44.0            # 4-bit quantisation (Linux/Windows CUDA)
-datasets>=3.0.0
+# =============================================================================
+# Schrödinger PDF → Parameter Fine-Tuning Pipeline
+# Full dependency list covering all scripts:
+#   generate_probability_distributions.py
+#   scripts/prepare_dataset.py
+#   scripts/finetune.py
+#   scripts/export_gguf.py
+#   scripts/inference.py
+#   scripts/test_inference.py
+#   scripts/evaluate.py
+#   app.py  (Streamlit UI)
+# =============================================================================
 
-# Image handling
-Pillow>=10.0.0
-torchvision>=0.19.0
-
-# LM Studio inference client (OpenAI-compatible)
-openai>=1.55.0
-
-# Dataset & evaluation utilities
+# ── Dataset generation (generate_probability_distributions.py) ───────────────
 numpy>=1.26.0
-pandas>=2.1.0
-scikit-learn>=1.5.0
-tqdm>=4.66.0
-pyyaml>=6.0.1
-rich>=13.0.0                    # pretty terminal output
+scipy>=1.12.0               # eigh_tridiagonal, hermite, genlaguerre, factorial
+matplotlib>=3.8.0           # all plot types + PatchCollection, Polygon
+Pillow>=10.0.0              # PNG read/write + tEXt metadata embedding
 
-# GGUF export (llama.cpp Python bindings — only needed for export step)
-# Install separately if needed:
-#   pip install llama-cpp-python
-# Or use the llama.cpp CLI directly (recommended, see export_gguf.py).
+# ── Dataset preparation (scripts/prepare_dataset.py) ─────────────────────────
+# stdlib only (json, pathlib, random) — no extra packages needed
+
+# ── Fine-tuning (scripts/finetune.py) ─────────────────────────────────────────
+# NOTE: unsloth must be installed separately — the correct variant depends on
+# your CUDA version.  Recommended install commands:
+#
+#   CUDA 12.1 (most common):
+#     pip install "unsloth[cu121-torch240] @ https://github.com/unslothai/unsloth/archive/refs/heads/main.zip"
+#
+#   CUDA 12.4 / 12.5 + torch 2.5:
+#     pip install "unsloth[cu124-torch250] @ https://github.com/unslothai/unsloth/archive/refs/heads/main.zip"
+#
+#   Colab (A100/T4, any CUDA):
+#     pip install "unsloth[colab-new] @ https://github.com/unslothai/unsloth/archive/refs/heads/main.zip"
+#
+# After installing unsloth, install the rest normally:
+trl>=0.12.0                 # SFTTrainer, SFTConfig
+peft>=0.13.0                # LoRA / QLoRA, PeftModel
+transformers>=4.47.0        # AutoModelForCausalLM, AutoTokenizer, AutoProcessor
+accelerate>=1.0.0           # distributed training + device_map
+bitsandbytes>=0.44.0        # 4-bit quantisation (Linux / Windows CUDA)
+datasets>=3.0.0             # HuggingFace Dataset for training loop
+torch>=2.1.0                # PyTorch — install the CUDA wheel from pytorch.org
+torchvision>=0.19.0         # required by some vision model preprocessors
+
+# ── GGUF export (scripts/export_gguf.py) ─────────────────────────────────────
+# The export script uses PEFT's merge_and_unload() to bypass a Windows bug in
+# Unsloth's save methods, then calls llama.cpp's CLI for GGUF conversion.
+#
+# llama.cpp CLI install options (pick one):
+#   winget install ggerganov.llama.cpp          (Windows — recommended)
+#   brew install llama.cpp                      (macOS)
+#   build from source: https://github.com/ggerganov/llama.cpp
+#
+# The conversion script (convert_hf_to_gguf.py) is NOT part of the pip package
+# — clone the repo and install its Python deps separately:
+#   git clone --depth 1 https://github.com/ggerganov/llama.cpp llama-cpp-src
+#   pip install -r llama-cpp-src/requirements.txt
+#
+# Optional: gguf Python package (used as a fallback path in export_gguf.py)
+# gguf>=0.6.0
+
+# ── LM Studio inference client (inference.py, test_inference.py, evaluate.py) ─
+openai>=1.55.0              # OpenAI-compatible client for LM Studio /v1 endpoint
+
+# ── Streamlit web UI (app.py) ─────────────────────────────────────────────────
+streamlit>=1.35.0
+
+# ── Shared utilities ──────────────────────────────────────────────────────────
+pyyaml>=6.0.1               # config file parsing (finetune_config.yaml)
+tqdm>=4.66.0                # progress bars
+pandas>=2.1.0               # manifest CSV handling
+scikit-learn>=1.5.0         # used in evaluate.py metrics (optional extension)
+
+# =============================================================================
+# Installation order
+# =============================================================================
+# 1. Install PyTorch first (CUDA wheel from https://pytorch.org/get-started):
+#      pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+#
+# 2. Install Unsloth (see note above for the correct variant)
+#
+# 3. Install everything else:
+#      pip install -r requirements.txt
+#
+# 4. Clone llama.cpp and install its deps (for GGUF export):
+#      git clone --depth 1 https://github.com/ggerganov/llama.cpp llama-cpp-src
+#      pip install -r llama-cpp-src/requirements.txt
